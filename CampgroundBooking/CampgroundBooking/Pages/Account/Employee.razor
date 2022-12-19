@@ -1,0 +1,117 @@
+﻿@page "/employee"
+
+@using CampgroundBooking.Backend.Models
+@using CampgroundBooking.Backend.Interfaces
+
+@inject IEmployeeData _db
+
+
+
+<h3>Employee Information</h3>
+
+@if(eTasks is null || locs is null || main is null)
+{
+    <p><em>Loading...</em></p>
+
+}
+else
+{
+    <div>
+        <h1 class="text-center">Current Daily Tasks</h1><br>
+        <p>Total Tasks: @totalTasks</p>
+        <div class="CurrentTaskDatagrid">
+            <RadzenDataGrid AllowFiltering="true"
+                                AllowColumnResize="true"
+                                AllowAlternatingRows="true"
+                                FilterMode="FilterMode.Simple"
+                                AllowSorting="true"
+                                AllowMultiColumnSorting="true"
+                                PageSize="15"
+                                AllowPaging="true"
+                                PagerHorizontalAlign="HorizontalAlign.Left"
+                                ShowPagingSummary="true"
+                                Data="@eTasks"
+                                TItem="EmployeeTaskModel"
+                                ColumnWidth="150px"
+                                LogicalFilterOperator="LogicalFilterOperator.And">
+
+            <Columns>                         
+                <RadzenDataGridColumn TItem="EmployeeTaskModel" Filterable="false" Sortable="false" Resizable="false" Property="TaskId" Title="Task Number" TextAlign="TextAlign.Center" Width="120px" />
+                <RadzenDataGridColumn TItem="EmployeeTaskModel" Filterable="false" Sortable="false" Resizable="false" Property="Description" Title="Description" TextAlign="TextAlign.Center" Width="120px" />
+            </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+
+    <div>
+        <h1 class="text-center">Maintenance</h1><br>
+        <div class="MaintenanceDatagrid">
+            <RadzenDataGrid AllowFiltering="true"
+                                AllowColumnResize="true"
+                                AllowAlternatingRows="true"
+                                FilterMode="FilterMode.Simple"
+                                AllowSorting="true"
+                                AllowMultiColumnSorting="true"
+                                PageSize="15"
+                                AllowPaging="true"
+                                PagerHorizontalAlign="HorizontalAlign.Left"
+                                ShowPagingSummary="true"
+                                Data="@main"
+                                TItem="EmployeeMaintenanceModel"
+                                ColumnWidth="150px"
+                                LogicalFilterOperator="LogicalFilterOperator.And">
+
+            <Columns>                         
+                <RadzenDataGridColumn TItem="EmployeeMaintenanceModel" Filterable="false" Sortable="false" Resizable="false" Property="MaintenanceNumber" Title="Maintenance Number" TextAlign="TextAlign.Center" Width="120px" />
+                <RadzenDataGridColumn TItem="EmployeeMaintenanceModel" Filterable="false" Sortable="false" Resizable="false" Property="SiteNo" Title="Site Number" TextAlign="TextAlign.Center" Width="120px" />
+                <RadzenDataGridColumn TItem="EmployeeMaintenanceModel" Filterable="false" Sortable="false" Resizable="false" Property="Date" Title="Date" TextAlign="TextAlign.Center" Width="120px" />
+                <RadzenDataGridColumn TItem="EmployeeMaintenanceModel" Filterable="false" Sortable="false" Resizable="false" Property="Description" Title="Description" TextAlign="TextAlign.Center" Width="120px" />
+            </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+
+      <div>
+        <h1 class="text-center">Work Locations</h1><br>
+        <div class="LocationsDatagrid">
+            <RadzenDataGrid AllowFiltering="true"
+                                AllowColumnResize="true"
+                                AllowAlternatingRows="true"
+                                FilterMode="FilterMode.Simple"
+                                AllowSorting="true"
+                                AllowMultiColumnSorting="true"
+                                PageSize="15"
+                                AllowPaging="true"
+                                PagerHorizontalAlign="HorizontalAlign.Left"
+                                ShowPagingSummary="true"
+                                Data="@locs"
+                                TItem="string"
+                                ColumnWidth="150px"
+                                LogicalFilterOperator="LogicalFilterOperator.And">
+
+            <Columns>                         
+                <RadzenDataGridColumn TItem="string" Filterable="false" Sortable="false" Resizable="false" Property="string" Title="Campground Name" TextAlign="TextAlign.Center" Width="120px" />                
+            </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly string? user = CurrentUserModel.GetUserEmail();
+    private List<EmployeeTaskModel>? eTasks;
+    private List<string>? locs;
+    private List<EmployeeMaintenanceModel>? main;
+    private int totalTasks = 0;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        eTasks = await _db.GetEmployeeTasks(user);
+        totalTasks = eTasks.Count();
+        locs = await _db.GetEmployeeWorkLocations(user);
+        main = await _db.GetMaintenance(user);
+    }
+
+
+}

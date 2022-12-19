@@ -1,0 +1,68 @@
+﻿@page "/campsitelist"
+@page "/campsitelist/{_CampgroundIDDebug?}"
+
+@using CampgroundBooking.Backend.CampsiteUtils
+@using System.Data;
+
+@inject NavigationManager NavigationManager
+@inject CampsiteDBServices CampsiteDBServices
+
+<h3>List of Campsites for Campground: <b> @targetCampgroundName (ID: @_CampgroundID)</b></h3>
+
+@if (@targetCampsiteList == null)
+{
+    <b> Loading ...</b>
+}
+else
+{
+    <div>
+        <CampsiteListDataGrid @ref=@dataGridRef _CampgroundID="_CampgroundID.Value"></CampsiteListDataGrid>
+    </div>
+}
+
+
+
+@code {
+
+
+    [Parameter]
+    public int? _CampgroundIDDebug { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "cg_id")]
+    public int? _CampgroundID { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "debug_site_count")]
+    public int? _RandCampsiteNum { get; set; }
+
+    private List<Campsite>? targetCampsiteList = null;
+    private String? targetCampgroundName = null;
+
+    private CampsiteListDataGrid dataGridRef { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        dataGridRef = new CampsiteListDataGrid();
+
+        _CampgroundID = _CampgroundID ?? _CampgroundIDDebug ?? 1;
+        targetCampsiteList = await CampsiteDBServices.getCampsiteList(_CampgroundID.Value);
+        targetCampgroundName = await CampsiteDBServices.getCampgroundNameFromID(_CampgroundID.Value);
+    }
+
+    public void NavigateToBookingPage(Campsite site)
+    {
+        NavigationManager.NavigateTo("/campsitebooking?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + site.campsiteNum);
+    }
+
+    public void NavigateToSiteInfoPage(Campsite site)
+    {
+        NavigationManager.NavigateTo("/campsiteinfo?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + site.campsiteNum);
+    }
+}

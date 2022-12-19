@@ -1,0 +1,174 @@
+﻿@page "/campsiteinfo"
+@using CampgroundBooking.Backend.CampsiteUtils
+@using CampgroundBooking.Backend.Models
+@using Microsoft.EntityFrameworkCore
+@inject NavigationManager NavigationManager
+@inject CampsiteDBServices CampsiteDBServices
+
+<PageTitle>CampsiteInfo</PageTitle>
+
+
+<h1>@targetCampgroundName (ID: @_CampgroundID), Site: @_SiteNumber Information</h1>
+<!--
+<div class="bookedDates" style="columns: auto 3; height: 100px">
+    <h>Reserved Dates: </h>
+    @for (var i = 0; i < targetBookings.Count; i++)
+    {
+        <li> Booking @(i + 1): From @(targetBookings[i].StartDate.ToString("yyyy/MM/dd")) to @(targetBookings[i].EndDate.ToString("yyyy/MM/dd")) </li>
+    }
+</div>
+-->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-4">
+
+            <RadzenCard Style="width:425px;">
+                <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H2">
+                    Reserved Dates:
+                </RadzenText>
+                <RadzenDatePicker Inline="true"
+                                  DateFormat="yyyy/MM/dd"
+                                  DateRender=@DateRenderAvailableDates
+                                  Max=DateTime.Now.AddYears(1)
+                                  TValue="DateTime?"
+                                  ReadOnly="true"
+                                  Style="display: flex; justify-content: center;" />
+            </RadzenCard>
+        </div>
+
+        <div class="col-md-5">
+            <h>Campground: @targetCampsite.campgroundName</h>
+            <br />
+            <h>Site Type: @targetCampsite.siteType</h>
+            <br />
+            <h>Power hookup: @targetCampsite.hasPower</h>
+            <br />
+            <h>Water hookup: @targetCampsite.hasWater</h>
+            <br />
+            <h>Waste dump: @targetCampsite.hasWasteDump</h>
+            <br />
+            <h>Maximum RV Size: @targetCampsite.maxRVSize</h>
+            <br />
+            <h>Maximum Tents Per Site: @targetCampsite.maxTentsPerSite</h>
+        </div>
+    </div>
+</div>
+
+<br />
+
+<div class="navButtons">
+    
+    <div hidden="true">
+        <RadzenButton Click=@(() => NavigateToPrevSiteInfo()) Text="Previous Site" ButtonStyle="ButtonStyle.Primary" />
+        <RadzenButton Click=@(() => NavigateToNextSiteInfo()) Text="Next Site" ButtonStyle="ButtonStyle.Primary" />
+    </div>
+
+    <div>
+        <br />
+        <RadzenButton Click=@(() => NavigateBackToSitesList()) Text="Return to Campsite List" ButtonStyle="ButtonStyle.Primary" />
+        <RadzenButton Click=@(() => NavigateToBookingPage(targetCampsite)) Text="Book Site" ButtonStyle="ButtonStyle.Primary" />
+    </div>
+
+</div>
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "cg_id")]
+    public int? _CampgroundID { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "site_num")]
+    public int? _SiteNumber { get; set; }
+
+    //private List<Booking>? randBookings;
+
+    private Campsite? targetCampsite;
+    private String? targetCampgroundName;
+    private List<CustomerBookingModel>? targetBookings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _CampgroundID = _CampgroundID ?? 1;
+        _SiteNumber = _SiteNumber ?? 1;
+
+        // Query DB for specific campsite info
+        //targetCampsite = RandomCampsiteGenerator.NewRandomCampsite(_SiteNumber.Value, _CampgroundID.Value);
+        targetCampsite = await CampsiteDBServices.getCampsite(_CampgroundID.Value, _SiteNumber.Value);
+        targetBookings = await CampsiteDBServices.getCampsiteBookings(_CampgroundID.Value, _SiteNumber.Value);
+        //randBookings = RandomBookingGenerator.GetRandomSiteBookings(_SiteNumber.Value); //For Pre DB testing
+
+        targetCampgroundName = await CampsiteDBServices.getCampgroundNameFromID(_CampgroundID.Value);
+    }
+
+    public void DateRenderAvailableDates(DateRenderEventArgs args)
+    {
+        foreach (CustomerBookingModel booking in targetBookings)
+        {
+            if (args.Date >= booking.StartDate & args.Date <= booking.EndDate)
+            {
+                try { args.Attributes.Add("style", "background-color: #ff0060; border: 2px solid black;"); }
+                catch (ArgumentException e) { }
+                args.Disabled = true;
+            }
+        }
+    }
+
+    public void NavigateToBookingPage(Campsite site)
+    {
+        NavigationManager.NavigateTo("/campsitebooking?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + site.campsiteNum);
+    }
+
+    public void NavigateBackToSitesList()
+    {
+        NavigationManager.NavigateTo("/campsitelist?" +
+                                     "cg_id=" +
+                                     _CampgroundID);
+    }
+
+    public async void NavigateToPrevSiteInfo()
+    {
+        OnInitialized();
+        if (_SiteNumber <= 1)
+        {
+            //Query DB to get Campground max site number
+            int maxSiteNum = 200;
+            NavigationManager.NavigateTo("/campsiteinfo?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + maxSiteNum);
+            await OnInitializedAsync();
+            return;
+        }
+        NavigationManager.NavigateTo("/campsiteinfo?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + (_SiteNumber-1));
+        await OnInitializedAsync();
+        return;
+    }
+
+    public async void NavigateToNextSiteInfo()
+    {
+        OnInitialized();
+        //Query DB to get Campground max site number
+        int maxSiteNum = 200;
+        if (_SiteNumber >= maxSiteNum)
+        {
+            NavigationManager.NavigateTo("/campsiteinfo?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + 1);
+            await OnInitializedAsync();
+            return;
+        }
+        NavigationManager.NavigateTo("/campsiteinfo?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + (_SiteNumber + 1));
+        await OnInitializedAsync();
+        return;
+    }
+}

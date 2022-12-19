@@ -1,0 +1,59 @@
+﻿@page "/"
+@inject NavigationManager NavManager
+@using CampgroundBooking.Backend
+@using CampgroundBooking.Backend.Models
+@using CampgroundBooking.Backend.Interfaces
+
+@inject ICampgroundLocationsData _db
+
+
+
+<PageTitle>CampgroundMap</PageTitle>
+
+<h1 class="accordion-header">Camp Grounds</h1>
+
+@if(locations is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-cl-6">
+            <RadzenGoogleMap Style="height:600px;" Zoom="@zoom" Center="@(new GoogleMapPosition() {Lat = 52.1022, Lng = -112.3328})" MarkerClick="@OnMarkerClick">
+                <Markers>
+
+                    @foreach(var loc in locations)
+                    {
+                        <label>
+                            <RadzenGoogleMapMarker Title= @loc.CampgroundId Label=@loc.Name Position="@(new GoogleMapPosition() {Lat = @loc.Lat, Lng = @loc.Long})" Style="color:white"/>
+                        </label>      
+                    }
+                </Markers>
+            </RadzenGoogleMap>
+        </div>
+    </div>    
+}
+
+
+
+
+@code{
+    int zoom = 7;
+    string clickedPosition = "";
+    string campgroundName = "";
+    private List<CampgroundLocationsModel>? locations;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        locations = await _db.GetLocations();
+    }
+
+    void OnMarkerClick(RadzenGoogleMapMarker args)
+    {
+        clickedPosition = $"Map {args.Title} clicked LAT : {args.Position.Lat}, LNG : {args.Position.Lng}";
+        campgroundName = $"{args.Label}";
+        NavManager.NavigateTo(uri:$"/CampgroundInfo/{campgroundName}");
+    }
+}

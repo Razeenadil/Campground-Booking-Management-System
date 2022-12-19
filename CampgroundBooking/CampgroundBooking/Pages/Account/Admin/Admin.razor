@@ -1,0 +1,428 @@
+﻿@page "/admin"
+@using CampgroundBooking.Backend.CampgroundUtils
+@using CampgroundBooking.Backend.NewEmployeeUtlis
+@using CampgroundBooking.Backend.Models.CampgroundModel
+@using CampgroundBooking.Backend.Models
+@using CampgroundBooking.Backend.Interfaces
+
+
+@inject CampgroundDBServices CampgroundDBServices
+@inject NewEmployeeDBServices NewEmployeeDBServices
+
+<h3>Hello Admin</h3>
+
+Employee Controls:
+<br />
+
+<div class = "EmployeeCreator">
+    <RadzenTemplateForm class="w-50" TItem="NewEmployeeModel" Data=@newEmployee Submit=@SubmitEmployee>
+        <div class="container-fluid">
+            <div class="row">
+                <RadzenFieldset Text="Create a new Employee">
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Select Employee Email:" />
+                        </div>
+                        <div class="col-md-4">
+                               <RadzenDropDown @ref=@emailDropDownRef AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data=@emailList @bind-Value=@newEmployee.Email
+                                    TextProperty="Email" ValueProperty="Email"/>
+                               
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Employee SSN:" />
+                        </div>
+                        <div class="col-md-4">
+                            <RadzenNumeric Name="SSN" @bind-Value="newEmployee.ESSN" TValue="int?" Disabled="@((String.IsNullOrEmpty(newEmployee.Email))? true : false)"/>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Employee Age:" />
+                        </div>
+                        <div class="col-md-4">
+                             <RadzenNumeric Name="Age" @bind-Value="newEmployee.Age" TValue="int?" Placeholder="18" Step="1" Min="18" Max="100"
+                                    Disabled="@((String.IsNullOrEmpty(newEmployee.Email))? true : false)"/>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Employee Sex:" />
+                        </div>
+                        <div class="col-md-4">
+                             <RadzenDropDown Name="Sex" @ref=@sexDropDownRef AllowClear="false" AllowFiltering="false" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data=@sexList @bind-Value=@sex
+                                         TextProperty="Sex" ValueProperty="Value" Disabled="@((String.IsNullOrEmpty(newEmployee.Email))? true : false)"/>                            
+                        </div>
+                    </div>
+                </RadzenFieldset>
+            </div>
+            <div class="row">
+                <div class="col-md-12" style="margin-top: 16px;">
+                    <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Create Employee"
+                                  Disabled="@((String.IsNullOrEmpty(newEmployee.Email))? true : false)" />
+                    <RadzenButton ButtonStyle="ButtonStyle.Light" Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@ClearInputEmployee"
+                                  Disabled="@((String.IsNullOrEmpty(newEmployee.Email))? true : false)" />
+                </div>
+            </div>
+        </div>
+    </RadzenTemplateForm>
+
+</div>
+<br />
+
+
+<div class = "EmployeeWorkLocationCreator">
+    <RadzenTemplateForm class="w-50" TItem="NewEmployeeWorkLocationModel" Data=@newLocation Submit=@SubmitLocation>
+        <div class="container-fluid">
+            <div class="row">
+                <RadzenFieldset Text="Create Employee Work Location">
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Select Employee Email:" />
+                        </div>
+                        <div class="col-md-4">
+                               <RadzenDropDown @ref=@emailDropDownRef AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data=@employeeList @bind-Value=@newLocation.Email
+                                    TextProperty="Email" ValueProperty="Email"/>                               
+                        </div>
+                    </div>
+
+
+                    
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Select Location:" />
+                        </div>
+                        <div class="col-md-4">
+                               <RadzenDropDown @ref=@campgroundDropDownRef AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data=@campgroundList @bind-Value=@locationID
+                                    TextProperty="Name" ValueProperty="ID" Class="w-100" Disabled="@((String.IsNullOrEmpty(newLocation.Email))? true : false)"/>                               
+                        </div>
+                    </div>
+
+                    
+                </RadzenFieldset>
+            </div>
+            <div class="row">
+                <div class="col-md-12" style="margin-top: 16px;">
+                    <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Create Employee Work Location"
+                                  Disabled="@((String.IsNullOrEmpty(newLocation.Email))? true : false)" />
+                    <RadzenButton ButtonStyle="ButtonStyle.Light" Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@ClearInputLocations"
+                                  Disabled="@((String.IsNullOrEmpty(newLocation.Email))? true : false)" />
+                </div>
+            </div>
+        </div>
+    </RadzenTemplateForm>
+
+</div>
+<br />
+
+
+
+
+
+<div class = "EmployeeTaskCreator">
+    <RadzenTemplateForm class="w-50" TItem="NewEmployeeTaskModel" Data=@newTask Submit=@SubmitTask>
+        <div class="container-fluid">
+            <div class="row">
+                <RadzenFieldset Text="Create Employee Task">
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Select Employee Email:" />
+                        </div>
+                        <div class="col-md-4">
+                               <RadzenDropDown @ref=@emailDropDownRef AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data=@employeeList @bind-Value=@newTask.Email
+                                    TextProperty="Email" ValueProperty="Email"/>                               
+                        </div>
+                    </div>
+
+
+                    
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Insert Task Description:" />
+                        </div>
+                        <div class="col-md-4">
+                            <RadzenTextBox @bind-Value="newTask.Description" TValue="string" Placeholder="Description" MaxLength="500" Disabled="@((String.IsNullOrEmpty(newTask.Email))? true : false)"/>
+                                                          
+                        </div>
+                    </div>
+
+                    
+                </RadzenFieldset>
+            </div>
+            <div class="row">
+                <div class="col-md-12" style="margin-top: 16px;">
+                    <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Create Employee Task"
+                                  Disabled="@((String.IsNullOrEmpty(newTask.Email))? true : false)" />
+                    <RadzenButton ButtonStyle="ButtonStyle.Light" Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@ClearInputTasks"
+                                  Disabled="@((String.IsNullOrEmpty(newTask.Email))? true : false)" />
+                </div>
+            </div>
+        </div>
+    </RadzenTemplateForm>
+
+</div>
+<br />
+
+<div class="emailDropDown">
+    <RadzenCard class="w-50">
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Select an Employee</RadzenText>
+        <RadzenDropDown @ref=@emailDropDownRef AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data=@employeeList @bind-Value=@deleteEmp.Email
+                        TextProperty="Email" ValueProperty="Email" Class="w-100" />                        
+        
+        <br />
+        <br />
+        <div class="employeeDeleteButton"> 
+            <RadzenButton 
+                Click=@(async () => { ConfirmDeletePopup2(); })
+                Disabled="@((deleteEmp.Email == null)? true : false)"
+                Text="Delete Selected Employee" 
+                ButtonStyle="ButtonStyle.Primary" />
+            <div class="loginPopup2">
+                <ConfirmPopup @ref="popupRef2"></ConfirmPopup>                
+            </div>
+        </div>
+    </RadzenCard>
+</div>
+
+
+
+
+
+Campground Controls:
+<br />
+<div class="CampgroundCreator">
+
+    <RadzenTemplateForm class="w-50" TItem="Campground" Data=@newCampground Submit=@SubmitCampground>
+        <div class="container-fluid">
+            <div class="row">
+                <RadzenFieldset Text="Create a new Campground">
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Campground Name:" />
+                        </div>
+                        <div class="col-md-4">
+                            <RadzenTextBox @bind-Value="newCampground.Name" TValue="string" Placeholder="Choose a Name" MaxLength="50" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Maximum campsite capacity:" />
+                        </div>
+                        <div class="col-md-2">
+                            <RadzenNumeric @bind-Value="newCampground.TotalSites" TValue="int?" Placeholder="0" Step="5" Min="0" Max="200"
+                                           Disabled="@((String.IsNullOrEmpty(newCampground.Name))? true : false)" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Campground Location (Latitude):" />
+                        </div>
+                        <div class="col-md-2">
+                            <RadzenNumeric @bind-Value="newCampground.Latitude" TValue="double?" Placeholder="0" Step="0.005" Min="-90" Max="90"
+                                           Disabled="@((String.IsNullOrEmpty(newCampground.Name))? true : false)" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Campground Location (Longitude):" />
+                        </div>
+                        <div class="col-md-2">
+                            <RadzenNumeric @bind-Value="newCampground.Longitude" TValue="double?" Placeholder="0" Step="0.005" Min="-180" Max="180"
+                                           Disabled="@((String.IsNullOrEmpty(newCampground.Name))? true : false)" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Campground Opening Date:" />
+                        </div>
+                        <div class="col-md-4">
+                            <RadzenDatePicker @bind-Value="@newCampground.OpenDate"
+                                              placeholder="Choose Opening Date"
+                                              Inline="false"
+                                              DateFormat="yyyy/MM/dd"
+                                              Min=DateTime.Now.AddYears(-1)
+                                              Max=DateTime.Now.AddYears(5)
+                                              TValue="DateTime?"
+                                              Disabled="@((String.IsNullOrEmpty(newCampground.Name))? true : false)" />                                           
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Campground Closing Date:" />
+                        </div>
+                        <div class="col-md-4">
+                            <RadzenDatePicker @bind-Value="@newCampground.CloseDate"
+                                              placeholder="Choose Closing Date"
+                                              Inline="false"
+                                              DateFormat="yyyy/MM/dd"
+                                              Min=@((newCampground.OpenDate != null)? newCampground.OpenDate.Value.AddDays(1) : DateTime.Now.AddYears(-1))
+                                              Max=DateTime.Now.AddYears(5)
+                                              TValue="DateTime?"
+                                              Disabled="@((newCampground.OpenDate == null)? true : false)" />
+                        </div>
+                    </div>
+                </RadzenFieldset>
+            </div>
+            <div class="row">
+                <div class="col-md-12" style="margin-top: 16px;">
+                    <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Create Campground"
+                                  Disabled="@((String.IsNullOrEmpty(newCampground.Name))? true : false)" />
+                    <RadzenButton ButtonStyle="ButtonStyle.Light" Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@ClearInputCampground"
+                                  Disabled="@((String.IsNullOrEmpty(newCampground.Name))? true : false)" />
+                </div>
+            </div>
+        </div>
+    </RadzenTemplateForm>
+</div>
+<br />
+<div class="campgroundDropDown">
+    <RadzenCard class="w-50">
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Select a Campground</RadzenText>
+        <RadzenDropDown @ref=@campgroundDropDownRef AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data=@campgroundList @bind-Value=@userInputCampgroundID
+                        TextProperty="Name" ValueProperty="ID" Change=@(args => CampgroundDropDownChange(args)) Class="w-100" />
+        <br />
+        <br />
+        <RadzenButton 
+            Click=@(async () => { NavigateToCampgroundAdminPage(); })
+            Disabled="@((userInputCampgroundID == null)? true : false)"
+            Text="View Campground Admin Page" 
+            ButtonStyle="ButtonStyle.Primary" />
+        <br />
+        <br />
+        <div class="campgroundDeleteButton"> 
+            <RadzenButton 
+                Click=@(async () => { ConfirmDeletePopup(); })
+                Disabled="@((userInputCampgroundID == null)? true : false)"
+                Text="Delete Selected Campground" 
+                ButtonStyle="ButtonStyle.Primary" />
+            <div class="loginPopup">
+                <ConfirmPopup @ref="popupRef"></ConfirmPopup>                
+            </div>
+        </div>
+    </RadzenCard>
+</div>
+
+@code {
+    private ConfirmPopup popupRef;
+    private ConfirmPopup popupRef2;
+    private bool popup;
+    private RadzenDropDown<int?> campgroundDropDownRef;
+    private RadzenDropDown<string?> emailDropDownRef;
+    private RadzenDropDown<int?> sexDropDownRef;
+
+
+    private List<Campground> campgroundList;
+    private List<PersonEmailModel>? emailList;
+    private List<PersonEmailModel> employeeList;
+    private List<SexModel> sexList = new List<SexModel>(){ new SexModel{ Sex = "Male", Value = 0 }, new SexModel{ Sex = "Female", Value = 1 },};
+    private int? userInputCampgroundID = null;
+    private int? locationID = null;
+
+
+    private Campground newCampground = new Campground();
+    private NewEmployeeModel newEmployee = new NewEmployeeModel();
+    private NewEmployeeWorkLocationModel newLocation = new NewEmployeeWorkLocationModel();
+    private NewEmployeeTaskModel newTask = new NewEmployeeTaskModel();
+    private PersonEmailModel deleteEmp = new PersonEmailModel();
+    private int? sex = 0;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        campgroundList = await CampgroundDBServices.GetAllCampgrounds();
+        emailList = await NewEmployeeDBServices.GetAllEmails();
+        employeeList = await NewEmployeeDBServices.GetEmployeeEmails();    
+    }
+
+    public void CampgroundDropDownChange(object args) => Console.WriteLine("Input Campground ID set to: " + userInputCampgroundID);
+
+    public void NavigateToCampgroundAdminPage() { NavigationManager.NavigateTo("/adminCampgroundControl?cg_id=" + userInputCampgroundID); }
+
+    public void ConfirmDeletePopup() => popupRef.Show(async () => { await CampgroundDBServices.DeleteCampground(userInputCampgroundID.Value); await OnInitializedAsync(); }, "Are you sure?", "Confirm");
+
+    public void ConfirmDeletePopup2() => popupRef2.Show(async () => { await NewEmployeeDBServices.DeleteEemployee(deleteEmp.Email); await OnInitializedAsync(); }, "Are you sure?", "Confirm");
+
+    public async void SubmitCampground(Campground campground)
+    {
+        await CampgroundDBServices.InsertCampground(campground);
+        ClearInputCampground();
+        await OnInitializedAsync();
+    }
+
+
+    public void ClearInputCampground()
+    {
+        newCampground = new Campground();
+        return;
+    }
+
+    public async void SubmitTask()
+    {
+        if(newTask.Email != null && newTask.Description != null)
+        {
+            Console.WriteLine("email " + newTask.Email);
+            Console.WriteLine("des " + newTask.Description);
+            await NewEmployeeDBServices.InsertEmployeeTask(newTask);
+            ClearInputTasks();
+            await OnInitializedAsync();
+
+        }            
+    }
+
+    public async void SubmitLocation()
+    {       
+        if (locationID != null && newLocation.Email != null)
+        {
+            newLocation.CampgroundId = locationID;
+            await NewEmployeeDBServices.InsertEmployeeWorkLoaction(newLocation);
+            ClearInputLocations();
+            await OnInitializedAsync();
+        }
+
+    }
+
+    public async void SubmitEmployee(NewEmployeeModel newEmp)
+    {        
+
+        if(sex == 0)
+        {
+            newEmployee.Sex = false;
+        }
+        else if(sex == 1)
+        {
+            newEmployee.Sex = true;
+        }
+
+        if(newEmployee.Age != null && newEmployee.Email != null && newEmployee.ESSN != null && newEmployee.Sex != null)
+        {
+            await NewEmployeeDBServices.InsertEmployee(newEmployee);
+            ClearInputEmployee();          
+            await OnInitializedAsync();     
+        }
+    }
+
+    public void ClearInputEmployee()
+    {        
+        newEmployee = new NewEmployeeModel();
+        sex = 0;
+        return;
+    }
+
+    public void ClearInputLocations()
+    {
+        newLocation = new NewEmployeeWorkLocationModel();
+        locationID = null;
+        return;
+    }
+
+    public void ClearInputTasks()
+    {
+        newTask = new NewEmployeeTaskModel();
+        return;
+    }
+}

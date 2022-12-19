@@ -1,0 +1,77 @@
+﻿@using CampgroundBooking.Backend.CampsiteUtils
+@using System.Data;
+
+@inject NavigationManager NavigationManager
+@inject CampsiteDBServices CampsiteDBServices
+@namespace CampgroundBooking.Pages.Campsite
+
+<div class="CampsiteListDatagrid">
+    <RadzenDataGrid @ref=@dataGrid
+                    AllowFiltering="true"
+                    AllowColumnResize="false"
+                    AllowAlternatingRows="true"
+                    FilterMode="FilterMode.Advanced"
+                    AllowSorting="true"
+                    AllowMultiColumnSorting="true"
+                    PageSize="15"
+                    AllowPaging="true"
+                    PagerHorizontalAlign="HorizontalAlign.Left"
+                    ShowPagingSummary="true"
+                    Data="@targetCampsiteList"
+                    TItem="Campsite"
+                    ColumnWidth="150px"
+                    LogicalFilterOperator="LogicalFilterOperator.And">
+
+        <Columns>
+            <RadzenDataGridColumn TItem="Campsite" Filterable="false" Sortable="false" Resizable="false" TextAlign="TextAlign.Center" Width="35px">
+                <Template Context="site">
+                    <RadzenButton Icon="done" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(() => NavigateToBookingPage(site))">
+                    </RadzenButton>
+                    <RadzenButton Icon="help" ButtonStyle="ButtonStyle.Dark" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(() => NavigateToSiteInfoPage(site))">
+                    </RadzenButton>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Campsite" Property="campsiteNum" Title="Site #" TextAlign="TextAlign.Center" Width="35px" Filterable="false" Sortable="false" />
+            <RadzenDataGridColumn TItem="Campsite" Property="siteType" Title="Site Type" TextAlign="TextAlign.Center" Sortable="true" Width="35px" />
+            <RadzenDataGridColumn TItem="Campsite" Property="hasPower" Title="Power" TextAlign="TextAlign.Center" Sortable="false" Width="35px" />
+            <RadzenDataGridColumn TItem="Campsite" Property="hasWater" Title="Water" TextAlign="TextAlign.Center" Sortable="false" Width="35px" />
+            <RadzenDataGridColumn TItem="Campsite" Property="hasWasteDump" Title="Waste Dump" TextAlign="TextAlign.Center" Sortable="false" Width="35px" />
+            <RadzenDataGridColumn TItem="Campsite" Property="maxRVSize" Title="Max RV Size (Ft)" TextAlign="TextAlign.Center" Sortable="false" Width="35px" />
+            <RadzenDataGridColumn TItem="Campsite" Property="maxTentsPerSite" Title="Max Tents Allowed" TextAlign="TextAlign.Center" Sortable="false" Width="35px" />
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@code {
+    [Parameter]
+    public int? _CampgroundID { get; set; }
+
+    private List<Campsite>? targetCampsiteList = null;
+    private String? targetCampgroundName = null;
+
+    private RadzenDataGrid<Campsite> dataGrid { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        dataGrid = new RadzenDataGrid<Campsite>();
+        targetCampsiteList = await CampsiteDBServices.getCampsiteList(_CampgroundID.Value);
+        targetCampgroundName = await CampsiteDBServices.getCampgroundNameFromID(_CampgroundID.Value);
+
+    }
+
+    public void NavigateToBookingPage(Campsite site)
+    {
+        NavigationManager.NavigateTo("/campsitebooking?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + site.campsiteNum);
+    }
+
+    public void NavigateToSiteInfoPage(Campsite site)
+    {
+        NavigationManager.NavigateTo("/campsiteinfo?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + site.campsiteNum);
+    }
+}

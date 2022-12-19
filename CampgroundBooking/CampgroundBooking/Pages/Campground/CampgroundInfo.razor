@@ -1,0 +1,359 @@
+﻿@page "/CampgroundInfo/{Cname?}"
+@inject NavigationManager NavManager
+@using CampgroundBooking.Backend.CampgroundUtils
+@using CampgroundBooking.Backend.Models
+@using CampgroundBooking.Backend.Interfaces
+
+@inject ICampgroundSitesData _db
+@inject ICampgroundServiceData _db2
+@inject ICampgroundOpenDuringData _db3
+@inject ICampgroundAmenitiesData _db4
+@inject ICampgroundReviewData _db5;
+@inject CampgroundDBServices CampgroundDBServices;
+
+@if(tent is null || rv is null || service is null || openSeason is null || hiking is null || biking is null
+    || lake is null || store is null || products is null || review is null){
+    <p><em>Loading</em></p>
+}
+else
+{
+    <!DOCTYPE html>
+<html>
+    <head>
+        <PageTitle>Campground Information</PageTitle>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            div.content {
+                text-align: center;
+            }
+
+            ul.myUL {
+                display: inline-block;
+                text-align: left;
+            }
+        </style>
+
+
+    </head>
+
+    <body>
+        <div>
+            <nav class="navbar navbar-expand-lg navbar-light bg-light" style="letter-spacing:4px">
+                                       
+                <div class="collapse navbar-collapse">
+                    <ul class="nav nav-pills mr-auto navbar-nav">
+
+                        <li class="nav-item active">
+                            
+                            <a href="@GetHref(0)" class="navbar-brand nav-link"> @Cname</a>
+
+                        </li>
+
+                        <li class="nav-item active">
+                            
+                            <a href="@GetHref(1)" class="nav-link btn btn-light" >About</a>
+                        </li>
+
+                        <li class="nav-item active">
+                             <a href="@GetHref(2)" class="nav-link btn btn-light" >Amenities</a>
+                        </li>
+
+                        <li class="nav-item active">
+                            <a href="@GetHref(3)" class="nav-link btn btn-light" >Reviews</a>
+                        </li>
+
+                        <li class="nav-item active">
+                            <a class="nav-link btn btn-primary" @onclick="NavigateToCampsiteList" >View Campsites</a>
+                        </li>
+                    </ul>
+
+                </div>
+            </nav>
+        </div>
+
+        <header class="container-fluid content" style="max-width:1600px;min-width:500px" id="@GetId(0)">
+            <img class="img-fluid" src=/images/camping.jpg asp-append-version="true" alt="Camping Image" width="1600" height="800" >
+            <div class="align-content-between bg-opacity-75">
+            </div>
+        </header>
+
+
+<div class="content" style="max-width:1600px">
+    <div  id="@GetId(1)">
+        <div >
+            <h1 class="text-center">About @Cname</h1><br>
+
+
+            <h5 style="font-weight: bold" class="text-center">Open Season</h5>
+          
+            <p class="text-center">We are open from @openDate till @closeDate.</p>
+
+
+            <h5 style="font-weight: bold" class="text-center">Total Sites</h5>
+            <ul class="myUL">
+
+ 
+                @foreach(var t in tent)
+                {
+                    <li >Total Tent Sites: @t.TotalTentSites</li>
+                }
+
+                @foreach(var r in rv)
+                {
+                    <li >Total RV Sites: @r.TotalRVSites</li>
+                }
+            </ul>
+
+
+            <h5 style="font-weight: bold" class="text-center">Services Offered</h5>
+            <ul class="myUL">
+                @if(service.Count == 0)
+                {
+                    <li>No services offered at @Cname</li>
+                }
+                else 
+                {
+                    @foreach(var s in service)
+                    {
+                        <li>@s.SiteService</li>                    
+                    }
+                }
+              
+            </ul>
+
+            
+        </div>
+    </div>
+
+    <br>
+    <br>
+
+    <div id="@GetId(2)">
+        <div>
+            <h1 class="text-center">Amenities</h1><br>
+
+             @if(hiking.Count == 0 && biking.Count == 0 && lake.Count == 0 && store.Count == 0)
+            {
+                <p>No amenities at @Cname</p>
+            }
+            else 
+            {
+                @foreach(var h in hiking)
+                {
+                    <h5 style="font-weight: bold" class="text-center">@h.Name</h5>
+                    <p class="text-center">Elevation: @h.Elevation meters</p>
+                    <p class="text-center">Experience Level: @h.Experience</p>
+                    <p class="text-center">@h.Description</p>
+                }
+
+                @foreach(var b in biking)
+                {
+                    <h5 style="font-weight: bold" class="text-center">@b.Name</h5>
+                    <p class="text-center">Length: @b.Distance kilometers</p>
+                    <p class="text-center">Experience Level: @b.Experience</p>
+                    <p class="text-center">@b.Description</p>
+                }
+            
+                @foreach(var b in lake)
+                {
+                    <h5 style="font-weight: bold" class="text-center">@b.Name</h5>
+                    <p class="text-center">Depth: @b.Depth meters</p>
+                    <p class="text-center">Area: @b.Area meters</p>
+
+                    if(b.FishingAllowed == true)
+                    {
+                        <p class="text-center">Fishing is allowed!</p>
+                    }
+                    else if(b.FishingAllowed == false)
+                    {
+                        <p class="text-center">No Fishing!</p>
+                    }
+
+                    if(b.BoatingAllowed == true)
+                    {
+                        <p class="text-center">Boating is allowed!</p>
+                    }
+                    else if(b.BoatingAllowed == false)
+                    {
+                        <p class="text-center">No Boating!</p>
+                    }
+                    <p class="text-center">@b.Description</p>
+                }
+
+  
+
+                @foreach(var s in store)
+                {
+                    <h5 style="font-weight: bold" class="text-center">@s.Name</h5>
+                    <p class="text-center">Open Time: @storeOpenHour</p>
+                    <p class="text-center">Close Time: @storeCloseHour</p>
+                    <p class="text-center">@s.Description</p>
+                }
+
+                @if(products.Count != 0)
+                {
+                    <h5 style="font-weight: bold" class="text-center">Available Products:</h5>
+                    <ul class="myUL">                 
+                        @foreach(var t in products)
+                        {
+                            <li >@t.Product</li>
+                        }
+                    </ul>
+                }
+            }                 
+        </div>
+    </div>
+
+    <br>
+    <br>
+
+    <div id="@GetId(3)">
+        <div>
+            <h1 class="text-center">Reviews</h1><br>
+
+                <RadzenButton Click=@(() => { ConfirmReviewNavigation(); } ) Text="Write a Review" ButtonStyle="ButtonStyle.Primary" />
+                <div class="loginPopup">
+                    <Popup @ref="popupRef"></Popup>
+                </div>
+                <div class="ReviewDatagrid">
+                    <RadzenDataGrid AllowFiltering="true"
+                                    AllowColumnResize="true"
+                                    AllowAlternatingRows="true"
+                                    FilterMode="FilterMode.Simple"
+                                    AllowSorting="true"
+                                    AllowMultiColumnSorting="true"
+                                    PageSize="15"
+                                    AllowPaging="true"
+                                    PagerHorizontalAlign="HorizontalAlign.Left"
+                                    ShowPagingSummary="true"
+                                    Data="@review"
+                                    TItem="CampgroundReviewModel"
+                                    LogicalFilterOperator="LogicalFilterOperator.And">
+
+                        <Columns>
+                            
+                            <RadzenDataGridColumn TItem="CampgroundReviewModel" Property="StarRating" Title="Rating" TextAlign="TextAlign.Center" Width="15px">
+                                <Template Context="data">
+                                    <RadzenRating ReadOnly="true" Stars="5" Value="@data.StarRating" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="CampgroundReviewModel" Filterable="false" Sortable="false" Resizable="false" Property="PersonEmail" Title="Account" TextAlign="TextAlign.Center" Width="30px" />
+                            
+                            <RadzenDataGridColumn TItem="CampgroundReviewModel" Filterable="false" Sortable="false" Resizable="false" Property="Description" Title="Description" TextAlign="TextAlign.Center" Width="120px">
+                                <Template Context="data">
+                                        <p style="white-space:normal; text-align:left;">@data.Description</p>
+                                </Template>
+                            </RadzenDataGridColumn>
+                            
+                        </Columns>
+                    </RadzenDataGrid>
+                </div>
+
+        </div>
+    </div>
+
+</div>
+        <AnchorNavigation />
+    </body>
+</html>
+}
+<br />
+<br />
+<br />
+
+<style>
+    .loginPopup {
+        margin: auto;
+        text-align: center;
+        width: 25%;
+        padding: 10px;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public String ? Cname { get; set; }
+
+    private List<CampgroundRVSitesModel>? rv;
+    private List<CampgroundTentSitesModel>? tent;
+    private List<CampgroundServiceModel>? service;
+    private List<CampgroundOpenDuringModel>? openSeason;
+    private List<CampgroundHikingModel>? hiking;
+    private List<CampgroundBikingModel>? biking;
+    private List<CampgroundLakeModel>? lake;
+    private List<CampgroundStoreModel>? store;
+    private List<CampgroundStoreProductModel>? products;
+    private List<CampgroundReviewModel>? review;
+
+
+
+    private int ? id;
+    private string ? openDate;
+    private string ? closeDate;
+    private string ? storeOpenHour;
+    private string ? storeCloseHour;
+    private string ? storeName;
+    string GetHref(int i) =>"/CampgroundInfo/" + Cname + "#" + GetId(i); 
+    string GetId(int i) => "header-" + i;
+
+    private Popup popupRef;
+    private String? user = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        id = await CampgroundDBServices.GetCampgroundIDFromName(Cname);
+        rv = await _db.GetRVSites(Cname);
+        tent = await _db.GetTentSites(Cname);
+        service = await _db2.GetServices(Cname);
+        openSeason = await _db3.GetOpenDuring(Cname);
+        hiking = await _db4.GetHiking(Cname);
+        biking = await _db4.GetBiking(Cname);
+        lake = await _db4.GetLake(Cname);
+        store = await _db4.GetStore(Cname);
+        review = await _db5.GetReviews(Cname);
+        Format();
+        products = await _db4.GetStoreProducts(storeName);
+
+
+        user = CurrentUserModel.GetUserEmail();
+    }
+
+    private void Format()
+    {
+        foreach(var open in openSeason)
+        {
+            openDate = String.Format("{0:D}", open.OpenDate);
+            closeDate = String.Format("{0:D}", open.CloseDate);
+        }
+
+        foreach(var t in store)
+        {
+            storeOpenHour = String.Format("{0:t}", t.OpeningHour);
+            storeCloseHour = String.Format("{0:t}", t.ClosingHour);
+            storeName = t.Name;
+        }
+    }
+
+    public void NavigateToCampsiteList()
+    {
+        NavManager.NavigateTo(uri:$"/campsitelist?cg_id={id}");   
+    }
+
+    public void NavigateToReviewPage()
+    {
+        NavManager.NavigateTo(uri: $"/writeReview?cg_id={id}");
+    }
+
+    private async void ConfirmReviewNavigation()
+    {
+        // Display popup message if not logged in
+        if (String.IsNullOrEmpty(user))
+        {
+            popupRef.Show("You must be logged in before posting a review!", "Error!");
+            return;
+        }
+        else { NavigateToReviewPage(); }
+    }
+
+}

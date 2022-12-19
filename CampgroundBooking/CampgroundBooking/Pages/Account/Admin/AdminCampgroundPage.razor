@@ -1,0 +1,36 @@
+﻿@page "/adminCampgroundControl"
+
+@using CampgroundBooking.Backend.CampgroundUtils
+@using CampgroundBooking.Backend.Models.CampgroundModel
+@using CampgroundBooking.Pages.Campsite
+@inject CampgroundDBServices CampgroundDBServices
+
+<h3>Campground (ID @_CampgroundID.Value) Admin Control</h3>
+<div class="campgroundDropDown">
+    <AdminCampsiteListDataGrid @ref=@dataGridRef _CampgroundID="_CampgroundID.Value"></AdminCampsiteListDataGrid>
+</div>
+
+@code {
+    private AdminCampsiteListDataGrid dataGridRef;
+    private RadzenDropDown<int?> campgroundDropDownRef;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "cg_id")]
+    public int? _CampgroundID { get; set; }
+
+    private List<Campground> campgroundList;
+    private int? userInputCampgroundID = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _CampgroundID = _CampgroundID ?? 1;
+        campgroundList = await CampgroundDBServices.GetAllCampgrounds();
+        dataGridRef = new AdminCampsiteListDataGrid();
+        
+
+    }
+
+    public void CampgroundDropDownChange(object args) => Console.WriteLine("Input Campground ID set to: " + userInputCampgroundID);
+
+    public void NavigateToCampgroundAdminPage() { NavigationManager.NavigateTo("/adminCampgroundControl?cg_id=" + userInputCampgroundID); }
+}

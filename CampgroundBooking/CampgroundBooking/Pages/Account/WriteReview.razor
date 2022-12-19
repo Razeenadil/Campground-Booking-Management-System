@@ -1,0 +1,110 @@
+﻿@page "/writeReview"
+
+@using CampgroundBooking.Backend.Models
+@using CampgroundBooking.Backend.Interfaces
+
+@inject ICustomerBookingData _db
+@inject ICampgroundReviewData _db2
+@inject NavigationManager NavManager
+
+<PageTitle>Write a Review for: <b> (ID: @_CampgroundID)</b></PageTitle>
+<h1>Write a Review for: <b> (ID: @_CampgroundID)</b></h1>
+
+<br>
+
+@if (user is null)
+{
+        <p>Loading....</p>
+}
+else
+{
+        <h3>Leave A Rating</h3>
+        <div>
+                <div class="col-12 col-lg-6 p-3">
+                <RadzenCard>
+                    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Your rating</RadzenText>
+                    <RadzenRating Change=@(args => OnChangeStar(args)) />
+                </RadzenCard>
+            </div>
+        </div>
+
+        <br>
+        <br>
+
+
+                <div>
+                <h3>Write a Description</h3><br>
+                        <div class="col-md-6 col-lg-4 p-3">
+                            <RadzenCard>
+                                <RadzenTextArea Placeholder="Enter here..." Change=@(args => OnChangeText(args)) Class="w-100" />
+                            </RadzenCard>
+                        </div>
+
+                </div>
+                    <RadzenButton Shade="Shade.Darker" Click=@(args => OnClick()) Text="Submit" ButtonStyle="ButtonStyle.Success" />
+                        <div class="reviewPopup">
+                            <Popup @ref="popupRef"></Popup>
+                        </div>
+}
+
+@code {
+    [Parameter]
+    public int? _CampgroundIDDebug { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "cg_id")]
+    public int? _CampgroundID { get; set; }
+
+    private string? user = null;
+    private List<CustomerBookingModel>? booking;
+    private List<PersonReviewModel>? review;
+    private PersonReviewModel? reviews;
+    private List<AllCustomerBookingModel>? allBookings;
+    private DateTime? maxInputEndDate = DateTime.Now.AddYears(1);
+    private int currentSite = -1;
+    private string desc = "";
+    private int rating = -1;
+    private Popup popupRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _CampgroundID = _CampgroundID ?? 1;
+        user = CurrentUserModel.GetUserEmail();
+    }
+
+    public void NavigateBack()
+    {
+        NavManager.NavigateTo(uri: $"/account");
+    }    
+
+    void OnChangeStar(int value)
+    {
+        rating = value;
+
+    }
+
+    async void OnClick()
+    {
+
+        int result = await _db2.insertReview(_CampgroundID.Value, user, desc, rating);
+
+        if (result == 1)
+        {
+            popupRef.Show("Your review has been posted!", "Success!");
+            NavigateBack();
+            return;
+        }
+        else
+        {
+            popupRef.Show("There was an issue processing your review, please refresh the page and try again.", "Error!");
+        }
+        return;
+
+    }
+
+    void OnChangeText(string value)
+    {
+        desc += value;
+
+    }
+}

@@ -1,0 +1,315 @@
+﻿@page "/account"
+
+@using CampgroundBooking.Backend.Models
+@using CampgroundBooking.Backend.Interfaces
+
+@inject ICustomerBookingData _db
+@inject ICampgroundReviewData _db2
+@inject NavigationManager NavManager
+
+
+
+
+
+<PageTitle>Account Information</PageTitle>
+<h1>Account Information</h1>
+
+<br>
+
+<h3>Current Bookings</h3>
+
+@if (booking is null || review is null)
+{
+    <p>Loading....</p>
+}
+else
+{
+    <div>
+        <RadzenDataGrid AllowFiltering="false"
+                        AllowColumnResize="true"
+                        AllowAlternatingRows="true"
+                        AllowSorting="true"
+                        AllowMultiColumnSorting="true"
+                        PageSize="15"
+                        AllowPaging="true"
+                        PagerHorizontalAlign="Radzen.HorizontalAlign.Left"
+                        ShowPagingSummary="true"
+                        Data="@booking"
+                        TItem="CustomerBookingModel"
+                        ColumnWidth="150px"
+                        @ref="bookingGrid"
+                        RowUpdate="@OnUpdateRow"
+                        EditMode="DataGridEditMode.Single">
+
+            <Columns>
+                <RadzenDataGridColumn TItem="CustomerBookingModel" Property="BookingId" Title="Booking ID"></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="CustomerBookingModel" Property="BillingAddress" Title="Billing Address"></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="CustomerBookingModel" Property="SiteNo" Title="Site Number"></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="CustomerBookingModel" Property="StartDate" Title="Start Date">
+
+                     <Template Context="data">
+                        @String.Format("{0:d}", data.StartDate)
+                    </Template>
+
+                    <EditTemplate Context="data">
+                        <RadzenDatePicker   @bind-Value="data.StartDate" 
+                                            Style="width:100%"
+                                            DateFormat="yyyy/MM/dd"
+                                            DateRender=@DateRenderAvailableDates
+                                            Min=DateTime.Now
+                                            Max=DateTime.Now.AddYears(1)
+                                            Change=@(StartDate => updateEndDateInput(data.StartDate))/>
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="CustomerBookingModel" Property="EndDate" Title="End Date">
+
+                    <Template Context="data">
+                        @String.Format("{0:d}", data.EndDate)
+                    </Template>
+
+                    <EditTemplate Context="data">
+                        <RadzenDatePicker   @bind-Value="data.EndDate" 
+                                            Style="width:100%" 
+                                            DateFormat="yyyy/MM/dd"
+                                            DateRender=@DateRenderAvailableDates
+                                            Min=@data.StartDate
+                                            Max=@maxInputEndDate
+                                            Change=@(StartDate => updateEndDateInput(data.StartDate))/>
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+
+
+
+                <RadzenDataGridColumn TItem="CustomerBookingModel" Context="booking" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="156px">
+                <Template Context="booking">
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(booking))" @onclick:stopPropagation="true">
+                    </RadzenButton>
+                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => DeleteRow(booking))" @onclick:stopPropagation="true">
+                    </RadzenButton>
+                </Template>
+                <EditTemplate Context="booking">
+                    <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => SaveRow(booking))">
+                    </RadzenButton>
+                    <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@((args) => CancelEdit(booking))">
+                    </RadzenButton>
+                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => DeleteRow(booking))">
+                    </RadzenButton>
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            </Columns>
+
+        </RadzenDataGrid>
+    </div>
+    <Popup @ref="popup" />
+
+    <br>
+    <br>
+
+
+            <div>
+            <h3>Past Reviews</h3><br>
+                <div class="ReviewDatagrid">
+
+                    <RadzenDataGrid AllowFiltering="false"
+                                    AllowColumnResize="true"
+                                    AllowAlternatingRows="true"
+                                    FilterMode="FilterMode.Simple"
+                                    AllowSorting="true"
+                                    AllowMultiColumnSorting="true"
+                                    PageSize="15"
+                                    AllowPaging="true"
+                                    PagerHorizontalAlign="HorizontalAlign.Left"
+                                    ShowPagingSummary="true"
+                                    Data="@review"
+                                    TItem="PersonReviewModel"
+                                    ColumnWidth="150px"
+                                    LogicalFilterOperator="LogicalFilterOperator.And">
+
+                        <Columns>
+                            <RadzenDataGridColumn TItem="PersonReviewModel" Filterable="false" Sortable="false" Resizable="false" TextAlign="TextAlign.Center" Width="35px">
+                               
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="PersonReviewModel" Property="StarRating" Title="Rating" TextAlign="TextAlign.Center" Width="50px" >
+                                <Template Context="data">
+                                    <RadzenRating ReadOnly="true" Stars="5" Value="@data.StarRating" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="PersonReviewModel" Filterable="false" Sortable="false" Resizable="false" Property="Name" Title="Campground" TextAlign="TextAlign.Center" Width="120px" />
+                            <RadzenDataGridColumn TItem="PersonReviewModel" Filterable="false" Sortable="false" Resizable="false" Property="Description" Title="Description" TextAlign="TextAlign.Center" Width="120px" />
+                        </Columns>
+                    </RadzenDataGrid>
+                </div>
+
+        </div>
+}
+
+
+@code{
+    public RadzenDataGrid<CustomerBookingModel>? bookingGrid;
+    CustomerBookingModel? bookingUpdate;
+    CustomerBookingModel? bookingInsert;
+
+    private Popup? popup = new();
+    private readonly string? user = CurrentUserModel.GetUserEmail();
+    private List<CustomerBookingModel>? booking;
+    private List<PersonReviewModel>? review;
+    private List<AllCustomerBookingModel>? allBookings;
+    private DateTime? maxInputEndDate = DateTime.Now.AddYears(1);
+    private int currentSite = -1;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        booking = await _db.GetBookings(user);
+        review = await _db2.GetPersonReviews(user);
+        allBookings = await _db.GetAllBookings(user);
+    }
+
+    public void DateRenderAvailableDates(DateRenderEventArgs args)
+    {
+        foreach (var allB in allBookings)
+        {
+            if (args.Date >= allB.StartDate && args.Date <= allB.EndDate && currentSite == allB.SiteNo)
+            {        
+                try { args.Attributes.Add("style", "background-color: #ff0060; border: 2px solid black;"); }
+                catch (ArgumentException e) { }
+                args.Disabled = true;
+
+            }
+        }
+    }
+
+    public void updateEndDateInput(DateTime? startDate)
+    {
+        DateTime? closestNextBookingStartDate = DateTime.Now.AddYears(1);
+        foreach (var allB in allBookings)
+        {
+            if ((allB.StartDate > startDate) && (allB.StartDate < closestNextBookingStartDate) && allB.SiteNo == currentSite)
+            {
+                closestNextBookingStartDate = allB.StartDate;
+
+            }
+        }
+
+        maxInputEndDate = closestNextBookingStartDate;
+    }
+
+    
+
+    async Task EditRow(CustomerBookingModel book)
+    {
+        bookingUpdate = book;
+        currentSite = book.SiteNo;
+
+        await bookingGrid.EditRow(book);
+    }
+
+    async Task DeleteFromDB(CustomerBookingModel book)
+    {
+        CustomerBookingModel cus = new()
+        {
+            BookingId = book.BookingId,
+            BillingAddress = book.BillingAddress,
+            SiteNo = book.SiteNo,
+            StartDate = book.StartDate,
+            EndDate = book.EndDate
+        };
+        await _db.DeleteBooking(cus);
+        popup.Show("Booking has been deleted.", "");
+    }
+
+    async Task DeleteRow(CustomerBookingModel book)
+    {
+        if (book == bookingInsert)
+        {
+            bookingInsert = null;
+        }
+
+        if (book == bookingUpdate)
+        {
+            bookingUpdate = null;
+        }
+
+        if (booking.Contains(book))
+        {
+            DeleteFromDB(book);
+
+            booking.Remove(book);            
+
+            await bookingGrid.Reload();
+        }
+        else
+        {
+            bookingGrid.CancelEditRow(book);
+            await bookingGrid.Reload();
+        }
+    }
+
+    async Task SaveRow(CustomerBookingModel book)
+    {
+        await bookingGrid.UpdateRow(book);
+    }
+
+    async Task CancelEdit(CustomerBookingModel book)
+    {
+        if(book == bookingInsert)
+        {
+            bookingInsert = null;
+        }
+
+
+        bookingUpdate = null;
+
+        bookingGrid.CancelEditRow(book);
+
+        booking = await _db.GetBookings(user);
+        await bookingGrid.Reload();
+    }
+
+    async Task UpdateDB(CustomerBookingModel book)
+    {       
+        if(book.EndDate < book.StartDate)
+        {
+            booking = await _db.GetBookings(user);
+            await bookingGrid.Reload();
+            popup.Show("End Date is invalid.");
+        }
+        else if(book.StartDate < maxInputEndDate && book.EndDate > maxInputEndDate)
+        {            
+            booking = await _db.GetBookings(user);
+            await bookingGrid.Reload();
+            popup.Show("End Date is invalid.");
+        }
+        else
+        {
+            CustomerBookingModel cus = new()
+            {
+                BookingId = book.BookingId,
+                BillingAddress = book.BillingAddress,
+                SiteNo = book.SiteNo,
+                StartDate = book.StartDate,
+                EndDate = book.EndDate
+            };
+
+            await _db.UpdateBooking(cus);
+            booking = await _db.GetBookings(user);
+            allBookings = await _db.GetAllBookings(user);
+            await bookingGrid.Reload();
+            popup.Show("Booking has been updated successfully.");            
+        }
+    }
+
+
+
+    async Task OnUpdateRow(CustomerBookingModel book)
+    {
+        if(book == bookingInsert)
+        {
+            bookingInsert = null;
+        }
+
+        bookingUpdate = null;
+        await UpdateDB(book);      
+    }
+}

@@ -1,0 +1,270 @@
+﻿@using CampgroundBooking.Backend.CampsiteUtils
+@using CampgroundBooking.Backend.NewEmployeeUtlis
+@using CampgroundBooking.Backend.Models
+@using System.Data;
+@using CampgroundBooking.Backend.Models.EmployeeModel;
+
+@inject NavigationManager NavigationManager
+@inject CampsiteDBServices CampsiteDBServices
+@inject NewEmployeeDBServices NewEmployeeDBServices
+@namespace CampgroundBookingges.Campsite
+
+<div class="CampsiteListDatagrid">
+    <!-- 
+    <RadzenButton Click=@(async () => { await CampsiteDBServices.InsertCampsite(testRandomCampsite); await OnInitializedAsync(); }) Text="DEBUG New Random Campsite" ButtonStyle="ButtonStyle.Primary" />
+    <RadzenButton Click=@(async () => { await CampsiteDBServices.InsertRVCampsite(testRVCampsite); await OnInitializedAsync(); }) Text="DEBUG New RV Campsite" ButtonStyle="ButtonStyle.Primary" />
+    <RadzenButton Click=@(async () => { await CampsiteDBServices.InsertTentingCampsite(testTentingCampsite); await OnInitializedAsync(); }) Text="DEBUG New Tenting Campsite" ButtonStyle="ButtonStyle.Primary" />
+    <RadzenButton Click=@(async () => { await CampsiteDBServices.InsertMixedCampsite(testMixedCampsite); await OnInitializedAsync(); }) Text="DEBUG New Mixed Campsite" ButtonStyle="ButtonStyle.Primary" />
+    <RadzenButton Click=@(async () => { await CampsiteDBServices.DeleteCampsite(await CampsiteDBServices.getNewestCampsiteNoForCampground(_CampgroundID.Value), _CampgroundID.Value); await OnInitializedAsync(); }) Text="DEBUG DELETE Newest Campsite" ButtonStyle="ButtonStyle.Primary" />
+    -->
+    
+    
+    <RadzenDataGrid @ref=@dataGrid
+                    AllowFiltering="true"
+                    AllowColumnResize="false"
+                    AllowAlternatingRows="true"
+                    FilterMode="FilterMode.Advanced"
+                    AllowSorting="true"
+                    AllowMultiColumnSorting="true"
+                    PageSize="15"
+                    AllowPaging="true"
+                    PagerHorizontalAlign="HorizontalAlign.Left"
+                    ShowPagingSummary="true"
+                    Data="@targetCampsiteList"
+                    TItem="Campsite"
+                    ColumnWidth="150px"
+                    LogicalFilterOperator="LogicalFilterOperator.And">
+
+        <Columns>
+            <RadzenDataGridColumn TItem="Campsite" Filterable="false" Sortable="false" Resizable="false" TextAlign="TextAlign.Center" Width="35px">
+                <Template Context="site">
+                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium" Click=@(async () => { await CampsiteDBServices.DeleteCampsite(site.campsiteNum, site.campgroundID); await OnInitializedAsync(); })>
+                    </RadzenButton>
+                    <RadzenButton Icon="build" ButtonStyle="ButtonStyle.Secondary" Variant="Variant.Flat" Size="ButtonSize.Medium" Click=@(() => { newMaintenance.SiteNo=site.campsiteNum; })>
+                    </RadzenButton>
+                    <RadzenButton Icon="help" ButtonStyle="ButtonStyle.Dark" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(() => NavigateToSiteInfoPage(site))">
+                    </RadzenButton>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Campsite" Property="campsiteNum" Title="Site #" TextAlign="TextAlign.Center" Width="35px" Filterable="false" Sortable="false" />
+            <RadzenDataGridColumn TItem="Campsite" Property="siteType" Title="Site Type" TextAlign="TextAlign.Center" Sortable="true" Width="35px" />
+            <RadzenDataGridColumn TItem="Campsite" Property="hasPower" Title="Power" TextAlign="TextAlign.Center" Sortable="false" Width="35px" />
+            <RadzenDataGridColumn TItem="Campsite" Property="hasWater" Title="Water" TextAlign="TextAlign.Center" Sortable="false" Width="35px" />
+            <RadzenDataGridColumn TItem="Campsite" Property="hasWasteDump" Title="Waste Dump" TextAlign="TextAlign.Center" Sortable="false" Width="35px" />
+            <RadzenDataGridColumn TItem="Campsite" Property="maxRVSize" Title="Max RV Size (Ft)" TextAlign="TextAlign.Center" Sortable="false" Width="35px" />
+            <RadzenDataGridColumn TItem="Campsite" Property="maxTentsPerSite" Title="Max Tents Allowed" TextAlign="TextAlign.Center" Sortable="false" Width="35px" />
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+<div class="CampsiteCreator">
+
+    <RadzenTemplateForm TItem="Campsite" Data=@newCampsite Submit=@SubmitCampsite>
+        <div class="container-fluid">
+            <div class="row">
+                <RadzenFieldset Text="Create a new Campsite">
+                        <div class="row">
+                            <div class="col-md-4 align-items-center d-flex">
+                                <RadzenLabel Text="Campsite Type:" />
+                            </div>
+                            <div class="col-md-2">
+                                <RadzenDropDown @bind-Value="newCampsite.siteType" AllowClear="true" Placeholder="Select Campsite Type" Data=@siteTypes style="width: 100%;">
+                                </RadzenDropDown>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 align-items-center d-flex">
+                                <RadzenLabel Text="Power Hookup:" />
+                            </div>
+                            <div class="col-md-2">
+                                <RadzenCheckBox @bind-Value="newCampsite.hasPower" TValue="bool" 
+                                                Disabled="@((newCampsite.siteType == null || newCampsite.siteType == SiteType.Tenting)? true : false)">
+                                </RadzenCheckBox>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 align-items-center d-flex">
+                                <RadzenLabel Text="Water Hookup:" />
+                            </div>
+                        <div class="col-md-2">
+                                <RadzenCheckBox @bind-Value="newCampsite.hasWater" TValue="bool"
+                                                Disabled="@((newCampsite.siteType == null || newCampsite.siteType == SiteType.Tenting)? true : false)">
+                                </RadzenCheckBox>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 align-items-center d-flex">
+                                <RadzenLabel Text="Waste Dump:" />
+                            </div>
+                            <div class="col-md-2">
+                                <RadzenCheckBox @bind-Value="newCampsite.hasWasteDump" TValue="bool"
+                                                Disabled="@((newCampsite.siteType == null || newCampsite.siteType == SiteType.Tenting)? true : false)">
+                                </RadzenCheckBox>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 align-items-center d-flex">
+                                <RadzenLabel Text="Maximum RV Size (Ft):" />
+                            </div>
+                            <div class="col-md-1">
+                            <RadzenNumeric @bind-Value="newCampsite.maxRVSize" TValue="int" Placeholder="0" Step="5" Min="0" Max="45"
+                                           Disabled="@((newCampsite.siteType == null || newCampsite.siteType == SiteType.Tenting)? true : false)"/>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 align-items-center d-flex">
+                                <RadzenLabel Text="Maximum tents allowed:" />
+                            </div>
+                            <div class="col-md-1">
+                            <RadzenNumeric @bind-Value="newCampsite.maxTentsPerSite" TValue="int" Placeholder="0" Step="1" Min="0" Max="10"
+                                           Disabled="@((newCampsite.siteType == null || newCampsite.siteType == SiteType.RV)? true : false)"/>
+                            </div>
+                        </div>
+                    </RadzenFieldset>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-md-12 d-flex align-items-end justify-content-center" style="margin-top: 16px;">
+                    <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Create Campsite"
+                                  Disabled="@((newCampsite.siteType == null)? true : false)" />
+                    <RadzenButton ButtonStyle="ButtonStyle.Light" Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@ClearCampsiteInput"
+                                  Disabled="@((newCampsite.siteType == null)? true : false)"/>
+                </div>
+            </div>
+        </div>
+        </RadzenTemplateForm>
+</div>
+
+<div class="SiteMaintenanceCreator">
+
+    <RadzenTemplateForm TItem="NewEmployeeMaintenanceModel" Data=@newMaintenance Submit=@SubmitMaintenance>
+        <div class="container-fluid">
+            <div class="row">
+                <RadzenFieldset Text="Assign Site Maintenance">
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Campsite Number:" />
+                        </div>
+                        <div class="col-md-2">
+                            <RadzenNumeric @bind-Value="newMaintenance.SiteNo" ReadOnly="true" Placeholder="Select a site from the list above" TValue="int?"/>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Employee SSN:" />
+                        </div>
+                        <div class="col-md-2">
+                            <RadzenDropDown AllowClear="true" AllowFiltering="true" Placeholder="Select an Employee" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" 
+                                            Data=@EmployeeSSNList @bind-Value=@newMaintenance.ESSN Class="w-100" TextProperty="ESSN" ValueProperty="ESSN"
+                                            Disabled="@((newMaintenance.SiteNo == 0 || newMaintenance.SiteNo == null)? true : false)" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 align-items-center d-flex">
+                            <RadzenLabel Text="Maintenance description:" />
+                        </div>
+                        <div class="col-md-8">
+                            <RadzenTextBox @bind-Value="newMaintenance.Description" TValue="string" Placeholder="Please provide a description of the requested maintenance" MaxLength="150"
+                                           Disabled="@((newMaintenance.ESSN == null)? true : false)" />
+                        </div>
+                    </div>
+                </RadzenFieldset>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-md-12 d-flex align-items-end justify-content-center" style="margin-top: 16px;">
+                    <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Create Campsite Maintenance Request"
+                                  Disabled="@((String.IsNullOrEmpty(newMaintenance.Description))? true : false)" />
+                    <RadzenButton ButtonStyle="ButtonStyle.Light" Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@ClearMaintenanceInput"
+                                  Disabled="@((String.IsNullOrEmpty(newMaintenance.Description))? true : false)" />
+                </div>
+            </div>
+        </div>
+    </RadzenTemplateForm>
+</div>
+
+@code {
+    [Parameter]
+    public int? _CampgroundID { get; set; }
+
+    private List<Campsite>? targetCampsiteList = null;
+    private String? targetCampgroundName = null;
+
+    private RadzenDataGrid<Campsite> dataGrid { get; set; }
+
+    /*
+    private Campsite? testRandomCampsite = null;
+    private Campsite? testRVCampsite = null;
+    private Campsite? testTentingCampsite = null;
+    private Campsite? testMixedCampsite = null;
+    */
+
+    private Campsite? newCampsite = new Campsite();
+    private IEnumerable<SiteType> siteTypes = Enum.GetValues(typeof(SiteType)).Cast<SiteType>();
+
+    private NewEmployeeMaintenanceModel? newMaintenance = new NewEmployeeMaintenanceModel();
+    private List<EmployeeSSNsModel> EmployeeSSNList;
+    protected override async Task OnInitializedAsync()
+    {
+        dataGrid = new RadzenDataGrid<Campsite>();
+        targetCampsiteList = await CampsiteDBServices.getCampsiteList(_CampgroundID.Value);
+        targetCampgroundName = await CampsiteDBServices.getCampgroundNameFromID(_CampgroundID.Value);
+
+        EmployeeSSNList = await NewEmployeeDBServices.GetEmployeeSSNs();
+
+        /*
+        testRandomCampsite = RandomCampsiteGenerator.NewRandomCampsite(-1, _CampgroundID.Value);
+        testRVCampsite = Campsite.RVSite(0, _CampgroundID.Value, targetCampgroundName, true, true, true, 37);
+        testTentingCampsite = Campsite.TentingSite(0, _CampgroundID.Value, targetCampgroundName, 4);
+        testMixedCampsite = Campsite.MixedSite(0, _CampgroundID.Value, targetCampgroundName, true, true, true, 37, 6);
+        */
+    }
+
+    public void NavigateToBookingPage(Campsite site)
+    {
+        NavigationManager.NavigateTo("/campsitebooking?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + site.campsiteNum);
+    }
+
+    public void NavigateToSiteInfoPage(Campsite site)
+    {
+        NavigationManager.NavigateTo("/campsiteinfo?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + site.campsiteNum);
+    }
+
+    public async void SubmitCampsite()
+    {
+        newCampsite.campgroundID = _CampgroundID.Value;
+        await CampsiteDBServices.InsertCampsite(newCampsite);
+        ClearCampsiteInput();
+        await OnInitializedAsync();
+    }
+
+    public async void SubmitMaintenance()
+    {
+        await CampsiteDBServices.InsertCampsiteMaintenance(newMaintenance);
+        ClearMaintenanceInput();
+        await OnInitializedAsync();
+    }
+
+    public void ClearInput()
+    {
+        ClearCampsiteInput();
+        ClearMaintenanceInput();
+        return;
+    }
+
+    public void ClearCampsiteInput()
+    {
+        newCampsite = new Campsite();
+        return;
+    }
+
+    public void ClearMaintenanceInput()
+    {
+        newMaintenance = new NewEmployeeMaintenanceModel();
+        return;
+    }
+}

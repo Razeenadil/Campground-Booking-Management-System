@@ -1,0 +1,253 @@
+﻿@page "/campsitebooking"
+
+@using CampgroundBooking.Backend.CampsiteUtils
+@using CampgroundBooking.Backend.Models
+@using Microsoft.EntityFrameworkCore
+@inject NavigationManager NavigationManager
+@inject CampsiteDBServices CampsiteDBServices
+
+<PageTitle>CampsiteBooking</PageTitle>
+
+<h1>@targetCampgroundName (ID: @_CampgroundID) Book Site: @_SiteNumber</h1>
+
+<br />
+
+<div class="dateRangeinput">
+
+    <div>
+        <RadzenCard Style="width:425px;">
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H2">
+                Chosen Start Date: @if (userInputStartDate.HasValue)
+                {
+                    @userInputStartDate.Value.ToString("yyyy/MM/dd")
+                    ;
+                }
+            </RadzenText>
+
+            <RadzenDatePicker @bind-Value=@userInputStartDate
+                              placeholder="Choose Start Date"
+                              Inline="true"
+                              DateFormat="yyyy/MM/dd"
+                              DateRender=@DateRenderAvailableDates
+                              Min=DateTime.Now
+                              Max=DateTime.Now.AddYears(1)
+                              TValue="DateTime?"
+                              Change=@(startDate => updateEndDateInput(startDate))
+                              Style="display: flex; justify-content: center;" />
+
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H2">
+                Chosen End Date: @if (userInputEndDate.HasValue)
+                {
+                    @userInputEndDate.Value.ToString("yyyy/MM/dd");
+                }
+            </RadzenText>
+
+            <RadzenDatePicker @bind-Value=@userInputEndDate
+                              placeholder="Choose End Date"
+                              Inline="true"
+                              DateFormat="yyyy/MM/dd"
+                              DateRender=@DateRenderAvailableDates
+                              Min=@userInputStartDate
+                              Max=@maxInputEndDate
+                              TValue="DateTime?"
+                              Disabled="@((userInputStartDate == null)? true : false)"
+                              Style="display: flex; justify-content: center;" />
+            <br />
+            <div>
+                <div class="loginPopup">
+                    <Popup @ref="popupRef"></Popup>
+                </div>
+                <RadzenButton Click=@(() => ClearUserInput()) Text="Clear" ButtonStyle="ButtonStyle.Primary" />
+                <RadzenButton Click=@(() => ConfirmBooking()) Text="Confirm Booking" ButtonStyle="ButtonStyle.Primary" Disabled="@((userInputStartDate == null || userInputEndDate == null)? true : false)"/>
+            </div>
+        </RadzenCard>
+        <div>
+            <br />
+            <RadzenButton Click=@(() => NavigateBackToSitesList()) Text="Return to Campsite List" ButtonStyle="ButtonStyle.Primary" />
+            <RadzenButton Click=@(() => NavigateToSiteInfoPage(targetCampsite)) Text="Go To Campsite Info" ButtonStyle="ButtonStyle.Primary" />
+        </div>
+    </div>
+</div>
+
+<style>
+    .loginPopup {
+        margin: auto;
+        width: 80%;
+        padding: 10px;
+    }
+</style>
+
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "cg_id")]
+    public int? _CampgroundID { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "site_num")]
+    public int? _SiteNumber { get; set; }
+
+    private String? user = null;
+
+    private Campsite? targetCampsite;
+    private String? targetCampgroundName;
+    private List<CustomerBookingModel>? targetBookings;
+
+    private Popup popupRef; 
+
+    //Date range properties
+    //private List<Booking> campsiteBookings;
+    private List<CustomerBookingModel>? randBookings;
+    private DateTime? userInputStartDate { get; set; }
+    private DateTime? userInputEndDate { get; set; }
+    private bool isEndDatePickerDisabled { get; set; } = true;
+    private bool isConfirmDisabled { get; set; } = true;
+    private DateTime maxInputEndDate = DateTime.Now.AddYears(1);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _CampgroundID = _CampgroundID ?? -1;
+        _SiteNumber = _SiteNumber ?? -1;
+        user = CurrentUserModel.GetUserEmail();
+        // Query DB for specific campsite info
+        // Get Reviews
+        targetCampsite = await CampsiteDBServices.getCampsite(_CampgroundID.Value, _SiteNumber.Value);
+        targetBookings = await CampsiteDBServices.getCampsiteBookings(_CampgroundID.Value, _SiteNumber.Value);
+        randBookings = RandomBookingGenerator.GetRandomSiteBookings(_SiteNumber.Value);
+
+        targetCampgroundName = await CampsiteDBServices.getCampgroundNameFromID(_CampgroundID.Value);
+    }
+
+    public void DateRenderAvailableDates(DateRenderEventArgs args)
+    {
+        foreach (CustomerBookingModel booking in targetBookings)
+        {
+            if (args.Date >= booking.StartDate & args.Date <= booking.EndDate)
+            {
+                try { args.Attributes.Add("style", "background-color: #ff0060; border: 2px solid black;"); }
+                catch (ArgumentException e) { }
+                args.Disabled = true;
+            }
+        }
+    }
+
+    public void updateEndDateInput(DateTime? inputStartDate)
+    {
+        DateTime closestNextBookingStartDate = maxInputEndDate;
+        foreach (CustomerBookingModel booking in targetBookings)
+        {
+            if ((booking.StartDate > inputStartDate) && (booking.StartDate < closestNextBookingStartDate))
+            {
+                closestNextBookingStartDate = booking.StartDate;
+            }
+        }
+        maxInputEndDate = closestNextBookingStartDate;
+        userInputEndDate = null;
+    }
+
+    public void NavigateToBookingPage(Campsite site)
+    {
+        NavigationManager.NavigateTo("/campsitebooking?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + site.campsiteNum);
+    }
+
+    public void NavigateBackToSitesList()
+    {
+        NavigationManager.NavigateTo("/campsitelist?" +
+                                     "cg_id=" +
+                                     _CampgroundID);
+    }
+
+    public void NavigateToSiteInfoPage(Campsite site)
+    {
+        NavigationManager.NavigateTo("/campsiteinfo?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + site.campsiteNum);
+    }
+
+    public void NavigateToPrevSiteInfo()
+    {
+        if (_SiteNumber <= 1)
+        {
+            //Query DB to get Campground max site number
+            int maxSiteNum = 200;
+            NavigationManager.NavigateTo("/campsiteinfo?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + maxSiteNum);
+            return;
+        }
+        NavigationManager.NavigateTo("/campsiteinfo?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + (_SiteNumber - 1));
+        return;
+    }
+
+    public void NavigateToNextSiteInfo()
+    {
+        //Query DB to get Campground max site number
+        int maxSiteNum = 200;
+        if (_SiteNumber >= maxSiteNum)
+        {
+            NavigationManager.NavigateTo("/campsiteinfo?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + 1);
+            return;
+        }
+        NavigationManager.NavigateTo("/campsiteinfo?" +
+                                     "cg_id=" + _CampgroundID +
+                                     "&" +
+                                     "site_num=" + (_SiteNumber + 1));
+        return;
+    }
+
+    private async void ConfirmBooking()
+    {
+        int siteNo = _SiteNumber.Value;
+        DateTime start = userInputStartDate.Value;
+        DateTime end = userInputEndDate.Value;
+        ClearUserInput();
+
+        // Display popup message if not logged in
+        if (String.IsNullOrEmpty(user))
+        {
+            popupRef.Show("You must be logged in before booking a campsite!", "Error!");
+            return;
+        }
+
+        int result = await CampsiteDBServices.insertCampsiteBooking(user, siteNo, start, end);
+
+        if (result == 1)
+        {
+            popupRef.Show("Your booking has been registered!", "Success!");
+            return;
+        }
+        else
+        {
+            popupRef.Show("There was an issue processing your booking, please refresh the page and try again.", "Error!");
+        }
+        return;
+    }
+
+    public void ClearUserInput()
+    {
+        userInputStartDate = null;
+        userInputEndDate = null;
+        maxInputEndDate = DateTime.Now.AddYears(1);
+    }
+    /*
+    public async void DebugInsertRandomBookings()
+        {
+        foreach (CustomerBookingModel randBook in randBookings)
+            {
+            await CampsiteDBServices.insertCampsiteBooking("randomBookingsUser@gmail.com", randBook.SiteNo, randBook.StartDate, randBook.EndDate);
+    }
+    }
+    <RadzenButton Click=@(async () => { DebugInsertRandomBookings(); await OnInitializedAsync(); }) Text="DEBUG Insert Random Bookings" ButtonStyle="ButtonStyle.Primary" />
+    */
+}
