@@ -1,8 +1,0 @@
-﻿CREATE TABLE [dbo].[EmployeeTasks]
-(
-	[ESSN] INT NOT NULL, 
-    [TaskId] INT NOT NULL IDENTITY(50000,4), 
-    [Description] TEXT NOT NULL,
-    PRIMARY KEY ([ESSN],[TaskId]),
-	FOREIGN KEY ([ESSN]) REFERENCES Employee([ESSN]) ON DELETE CASCADE
-);
